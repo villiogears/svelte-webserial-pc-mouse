@@ -1,19 +1,28 @@
 import serial
+import serial.tools.list_ports
 import json
 import pyautogui
 import sys
 
-# Change this to your Serial port (e.g., 'COM3' on Windows, '/dev/ttyUSB0' on Linux)
-SERIAL_PORT = 'COM1' 
+# PC側で待ち受けるポートの設定
+# Macの場合は '/dev/cu.usbmodemXXX' などになります
+# 空にすると利用可能なポートを表示します
+SERIAL_PORT = '' 
 BAUD_RATE = 115200
 
-# Security: Disable fail-safe if you want, but be careful!
-# pyautogui.FAILSAFE = False 
+def list_available_ports():
+    ports = serial.tools.list_ports.comports()
+    print("Available ports:")
+    for i, port in enumerate(ports):
+        print(f"{i}: {port.device} ({port.description})")
+    return ports
 
 def process_command(line):
+    # (既存のロジックと同じ)
     try:
         data = json.loads(line)
         action = data.get("action")
+        # ...
         
         if action == "mouseMove":
             pyautogui.moveTo(data["x"], data["y"])
@@ -29,6 +38,17 @@ def process_command(line):
         print(f"Error processing line: {line.strip()} - {e}")
 
 def main():
+    global SERIAL_PORT
+    ports = list_available_ports()
+    
+    if not SERIAL_PORT:
+        if not ports:
+            print("No serial ports found.")
+            return
+        # 自動で最初のポートを選択するか、入力を待つ
+        SERIAL_PORT = ports[0].device
+        print(f"Automatically selected {SERIAL_PORT}")
+
     print(f"Listening on {SERIAL_PORT}...")
     try:
         with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1) as ser:
