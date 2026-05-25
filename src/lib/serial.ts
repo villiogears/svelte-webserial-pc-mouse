@@ -5,7 +5,16 @@ export class SerialService {
 
   async connect() {
     try {
+      if (!navigator.serial) {
+        throw new Error("Web Serial API not supported in this browser.");
+      }
+      
+      // フィルタなしで全てのデバイスを表示させてみる
       this.port = await navigator.serial.requestPort();
+      
+      const info = this.port.getInfo();
+      console.log("Connected to device:", info);
+
       await this.port.open({ baudRate: 115200 });
       
       const textEncoder = new TextEncoderStream();
