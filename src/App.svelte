@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { GeminiService } from './lib/gemini';
-  import { SerialService } from './lib/serial';
+  import { UsbService } from './lib/usb';
 
   let apiKey = $state(localStorage.getItem('gemini_api_key') || '');
   let prompt = $state('');
@@ -9,7 +9,7 @@
   let isConnected = $state(false);
   let isProcessing = $state(false);
 
-  const serial = new SerialService();
+  const usb = new UsbService();
   let gemini: GeminiService | null = null;
 
   $effect(() => {
