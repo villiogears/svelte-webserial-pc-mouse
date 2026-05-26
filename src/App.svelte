@@ -26,25 +26,25 @@
   }
 
   async function handleConnect() {
-    const success = await serial.connect();
+    const success = await usb.connect();
     if (success) {
       isConnected = true;
-      addLog('info', 'Serial port connected');
+      addLog('info', 'USB device connected');
     } else {
-      addLog('error', 'Failed to connect to Serial port');
+      addLog('error', 'Failed to connect to USB device');
     }
   }
 
   async function handleDisconnect() {
-    await serial.disconnect();
+    await usb.disconnect();
     isConnected = false;
-    addLog('info', 'Serial port disconnected');
+    addLog('info', 'USB device disconnected');
   }
 
   async function handleSubmit() {
     if (!gemini || !prompt) return;
     if (!isConnected) {
-      addLog('error', 'Please connect Serial port first');
+      addLog('error', 'Please connect USB device first');
       return;
     }
 
@@ -57,7 +57,7 @@
       
       for (const call of result.calls) {
         addLog('command', `Sending command: ${call.name}(${JSON.stringify(call.args)})`);
-        await serial.sendCommand({
+        await usb.sendCommand({
           action: call.name,
           ...call.args
         });
@@ -82,9 +82,9 @@
 
     <div class="actions">
       {#if !isConnected}
-        <button onclick={handleConnect}>Connect Serial</button>
+        <button onclick={handleConnect}>Connect USB</button>
       {:else}
-        <button class="secondary" onclick={handleDisconnect}>Disconnect Serial</button>
+        <button class="secondary" onclick={handleDisconnect}>Disconnect USB</button>
         <span class="status-badge connected">Connected</span>
       {/if}
     </div>
