@@ -9,8 +9,11 @@ export class UsbService {
         throw new Error("Web USB API not supported in this browser.");
       }
       
-      // デバイスを選択（フィルタなしで全て表示）
-      this.device = await navigator.usb.requestDevice({ filters: [] });
+      // デバイスを選択（フィルタを指定すると見つけやすくなります）
+      // vendorId は Python 側の VENDOR_ID と合わせてください
+      this.device = await navigator.usb.requestDevice({ 
+        filters: [{ vendorId: 0x18d1 }] 
+      });
       
       await this.device.open();
       
