@@ -75,10 +75,21 @@ def main():
         print(f"Connected to ID {hex(dev.idVendor)}:{hex(dev.idProduct)}")
 
     # OSからインターフェースをデタッチ（占有解除）
-    if dev.is_kernel_driver_active(0):
-        dev.detach_kernel_driver(0)
+    try:
+        if sys.platform != "darwin" and dev.is_kernel_driver_active(0):
+            dev.detach_kernel_driver(0)
+    except NotImplementedError:
+        # 一部のプラットフォームやバックエンドではサポートされていない
+        pass
+    except usb.core.USBError as e:
+        print(f"Warning: Could not detach kernel driver: {e}")
     
-    dev.set_configuration()
+    try:
+        dev.set_configuration()
+    except usb.core.USBError as e:
+        print(f"Error: Could not set configuration: {e}")
+        print("Tip: If on macOS, this might be due to system protection. Or try running as root.")
+        return
     
     # エンドポイントの取得 (WebUSBのtransferOutに対応する読み取り口)
     cfg = dev.get_active_configuration()
