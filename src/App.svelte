@@ -1,19 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { GeminiService } from './lib/gemini';
-  import { UsbService } from './lib/usb';
+  import { WebSocketService } from './lib/websocket';
 
   let apiKey = $state(localStorage.getItem('gemini_api_key') || '');
+  let pcIp = $state(localStorage.getItem('pc_ip_address') || '');
   let prompt = $state('');
   let logs = $state<{type: 'info' | 'error' | 'command', message: string}[]>([]);
   let isConnected = $state(false);
   let isProcessing = $state(false);
 
-  const usb = new UsbService();
+  const ws = new WebSocketService();
   let gemini: GeminiService | null = null;
 
   $effect(() => {
     localStorage.setItem('gemini_api_key', apiKey);
+    localStorage.setItem('pc_ip_address', pcIp);
     if (apiKey) {
       gemini = new GeminiService(apiKey);
     }
@@ -21,30 +23,33 @@
 
   function addLog(type: 'info' | 'error' | 'command', message: string) {
     logs = [...logs, { type, message }];
-    // Keep only last 50 logs
     if (logs.length > 50) logs = logs.slice(-50);
   }
 
   async function handleConnect() {
-    const success = await usb.connect();
+    if (!pcIp) {
+      addLog('error', 'Please enter PC IP address');
+      return;
+    }
+    const success = await ws.connect(pcIp);
     if (success) {
       isConnected = true;
-      addLog('info', 'USB device connected');
+      addLog('info', `Connected to PC at ${pcIp}`);
     } else {
-      addLog('error', 'Failed to connect to USB device');
+      addLog('error', `Failed to connect to ws://${pcIp}:8765`);
     }
   }
 
   async function handleDisconnect() {
-    await usb.disconnect();
+    await ws.disconnect();
     isConnected = false;
-    addLog('info', 'USB device disconnected');
+    addLog('info', 'Disconnected from PC');
   }
 
   async function handleSubmit() {
     if (!gemini || !prompt) return;
     if (!isConnected) {
-      addLog('error', 'Please connect USB device first');
+      addLog('error', 'Please connect to PC first');
       return;
     }
 
@@ -57,7 +62,7 @@
       
       for (const call of result.calls) {
         addLog('command', `Sending command: ${call.name}(${JSON.stringify(call.args)})`);
-        await usb.sendCommand({
+        ws.sendCommand({
           action: call.name,
           ...call.args
         });
@@ -72,7 +77,7 @@
 </script>
 
 <main class="container">
-  <h1>Gemini Mirroring (PC Control)</h1>
+  <h1>Gemini Mirroring (PC Control via WS)</h1>
 
   <section class="config">
     <div class="field">
@@ -80,11 +85,16 @@
       <input type="password" id="api-key" bind:value={apiKey} placeholder="Enter your API Key" />
     </div>
 
+    <div class="field">
+      <label for="pc-ip">PC IP Address (Check your PC's terminal)</label>
+      <input type="text" id="pc-ip" bind:value={pcIp} placeholder="e.g. 192.168.x.x" />
+    </div>
+
     <div class="actions">
       {#if !isConnected}
-        <button onclick={handleConnect}>Connect USB</button>
+        <button onclick={handleConnect}>Connect to PC</button>
       {:else}
-        <button class="secondary" onclick={handleDisconnect}>Disconnect USB</button>
+        <button class="secondary" onclick={handleDisconnect}>Disconnect</button>
         <span class="status-badge connected">Connected</span>
       {/if}
     </div>
